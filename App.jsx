@@ -1,5 +1,3 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-
 /* ── CONFIG ─────────────────────────────────────────────────── */
 const SUPABASE_URL  = "https://ojltltbqrevuvhhtsfeb.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbHRsdGJxcmV2dXZoaHRzZmViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTM4NTgsImV4cCI6MjA5MzIyOTg1OH0.ovpXXOsR_SAmyDIQUX8XJlxnCjGBt2SZ7KcHoV6oWvs";
@@ -669,7 +667,7 @@ function AdminGate({ onUnlock }) {
 }
 
 /* ── ROOT APP ────────────────────────────────────────────────── */
-export default function App() {
+function App() {
   const [splash, setSplash] = useState(true);
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -757,4 +755,5 @@ export default function App() {
     </div>
   );
 }
+
 window.App = App;
