@@ -14,6 +14,10 @@
 </head>
 <body>
   <div id="root"></div>
+  <script type="text/babel">
+    // Make React hooks available globally
+    const { useState, useEffect, useRef, useCallback } = React;
+  </script>
   <script type="text/babel" src="App.jsx"></script>
   <script type="text/babel">
     document.addEventListener('DOMContentLoaded', function() {
@@ -21,6 +25,15 @@
       if (rootElement && typeof App !== 'undefined') {
         const root = ReactDOM.createRoot(rootElement);
         root.render(React.createElement(App));
+      } else {
+        // Retry after a short delay
+        setTimeout(function() {
+          const rootElement = document.getElementById('root');
+          if (rootElement && typeof App !== 'undefined') {
+            const root = ReactDOM.createRoot(rootElement);
+            root.render(React.createElement(App));
+          }
+        }, 1000);
       }
     });
   </script>
