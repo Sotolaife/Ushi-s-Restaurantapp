@@ -27,7 +27,7 @@ function openPaystack({ email, amount, onSuccess, onClose }) {
   if (!email) { onClose?.(); return; }
   const script = document.createElement("script");
   script.src = "https://js.paystack.co/v1/inline.js";
-  script.onload = () => { const handler = window.PaystackPop.setup({ key: PAYSTACK_KEY, email, amount: Math.round(amount * 100), currency: "NGN", ref: `ushis_${Date.now()}`, callback: (r) => onSuccess(r.reference), onClose }); handler.openIframe(); };
+  script.onload = () => { const handler = window.PaystackPop.setup({ key: PAYSTACK_KEY, email, amount: Math.round(amount * 100), currency: "NGN", channels: ['card'], ref: `ushis_${Date.now()}`, callback: (r) => onSuccess(r.reference), onClose }); handler.openIframe(); };
   document.head.appendChild(script);
 }
 
@@ -119,8 +119,7 @@ function CartSheet({ cart, setCart, profile, token, onSuccess, onClose }) {
 
 function Success({ orderNum, onBack }) {
   return React.createElement("div", { style: { minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center",color:C.white } },
-    React.createElement("div", { style: { fontSize:48,marginBottom:16 } }, "✅"),
-    React.createElement("div", { style: { fontFamily:"Georgia,serif",fontSize:26,fontWeight:900,marginBottom:8 } }, "Order Confirmed!"),
+    React.createElement("div", { style: { fontSize:48,marginBottom:16 } }, "✅"), React.createElement("div", { style: { fontFamily:"Georgia,serif",fontSize:26,fontWeight:900,marginBottom:8 } }, "Order Confirmed!"),
     React.createElement("div", { style: { color:C.muted,fontSize:12,fontFamily:"Courier New,monospace",marginBottom:24 } }, "Order #"+String(orderNum).padStart(4,"0")),
     React.createElement("button", { onClick:onBack, style: { background:C.gold,border:"none",borderRadius:14,padding:"14px 36px",color:C.bg,fontFamily:"Georgia,serif",fontSize:16,fontWeight:800,cursor:"pointer" } }, "Order Again")
   );
@@ -224,58 +223,19 @@ function AdminGate({ onUnlock }) {
 }
 
 function App() {
-  const [splash, setSplash] = useState(true);
-  const [session, setSession] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [pl, setPl] = useState(true);
-  const [tab, setTab] = useState("home");
-  const [ao, setAo] = useState(false);
-  const [au, setAu] = useState(false);
-
-  useEffect(()=>{
-    const saved = localStorage.getItem("ushis_session");
-    if(saved) {
-      try {
-        const s = JSON.parse(saved);
-        if(s?.token && s?.user?.id) {
-          setSession(s);
-          const cachedProfile = localStorage.getItem("ushis_profile");
-          if(cachedProfile) { try { setProfile(JSON.parse(cachedProfile)); setPl(false); } catch(e) {} }
-          loadProfileFast(s);
-          trackLogin(s.user.email, s.user.user_metadata?.full_name || 'User');
-        } else { localStorage.removeItem("ushis_session"); setPl(false); }
-      } catch(e) { localStorage.removeItem("ushis_session"); setPl(false); }
-    } else { setPl(false); }
-  },[]);
-
-  const loadProfileFast = async (s, attempt=1) => {
-    if(!s?.token||!s?.user?.id) { setPl(false); return; }
-    if(attempt===1 && !profile) setPl(true);
-    try {
-      const data = await sb.authQuery(`profiles?id=eq.${s.user.id}`,s.token);
-      if(data&&data.length>0) { setProfile(data[0]); setPl(false); localStorage.setItem("ushis_profile", JSON.stringify(data[0])); }
-      else if(attempt<3) { setTimeout(()=>loadProfileFast(s,attempt+1), 500); }
-      else { setPl(false); }
-    } catch(e) { if(attempt<3) setTimeout(()=>loadProfileFast(s,attempt+1), 500); else setPl(false); }
-  };
-
-  const ha = (s) => { if(!s?.token||!s?.user?.id) return; setSession(s); localStorage.setItem("ushis_session",JSON.stringify(s)); trackLogin(s.user.email,s.user.user_metadata?.full_name||'User'); loadProfileFast(s); };
+  const [splash, setSplash] = useState(true); const [session, setSession] = useState(null); const [profile, setProfile] = useState(null); const [pl, setPl] = useState(true); const [tab, setTab] = useState("home"); const [ao, setAo] = useState(false); const [au, setAu] = useState(false);
+  useEffect(()=>{ const saved=localStorage.getItem("ushis_session"); if(saved){ try{ const s=JSON.parse(saved); if(s?.token&&s?.user?.id){ setSession(s); const cp=localStorage.getItem("ushis_profile"); if(cp){ try{setProfile(JSON.parse(cp));setPl(false);}catch(e){} } loadProfileFast(s); trackLogin(s.user.email,s.user.user_metadata?.full_name||'User'); } else{localStorage.removeItem("ushis_session");setPl(false);} }catch(e){localStorage.removeItem("ushis_session");setPl(false);} } else{setPl(false);} },[]);
+  const loadProfileFast = async (s, a=1) => { if(!s?.token||!s?.user?.id){setPl(false);return;} if(a===1&&!profile)setPl(true); try{ const d=await sb.authQuery(`profiles?id=eq.${s.user.id}`,s.token); if(d&&d.length>0){setProfile(d[0]);setPl(false);localStorage.setItem("ushis_profile",JSON.stringify(d[0]));} else if(a<3){setTimeout(()=>loadProfileFast(s,a+1),500);} else{setPl(false);} }catch(e){ if(a<3)setTimeout(()=>loadProfileFast(s,a+1),500); else setPl(false); } };
+  const ha = (s)=>{ if(!s?.token||!s?.user?.id) return; setSession(s); localStorage.setItem("ushis_session",JSON.stringify(s)); trackLogin(s.user.email,s.user.user_metadata?.full_name||'User'); loadProfileFast(s); };
   const hs = async ()=>{ try{await sb.signOut(session?.token);}catch(e){} setSession(null);setProfile(null);setPl(false);localStorage.removeItem("ushis_session");localStorage.removeItem("ushis_profile"); };
   const lp = useRef();
-
   if(splash) return React.createElement(Splash, { onDone:()=>setSplash(false) });
   if(!session) return React.createElement(AuthScreen, { onAuth:ha });
   if(ao){ if(!au) return React.createElement(AdminGate, { onUnlock:()=>setAu(true) }); return React.createElement("div", { style: { maxWidth:430,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column",background:C.bg } }, React.createElement("div", { style: { flex:1,overflowY:"auto" } }, React.createElement(AdminScreen, { session })), React.createElement("button", { onClick:()=>{setAo(false);setAu(false);}, style: { background:C.dim,border:"none",padding:"12px",color:C.muted,fontFamily:"Courier New,monospace",fontSize:11,cursor:"pointer" } }, "← BACK TO APP")); }
-
   return React.createElement("div", { style: { maxWidth:430,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column",background:C.bg,fontFamily:"Georgia,serif" } },
     React.createElement("div", { style: { flex:1,overflowY:"auto" } },
       pl?React.createElement("div", { style: { display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh" } }, React.createElement("div", { style: { color:C.muted,fontFamily:"Courier New,monospace",fontSize:13 } }, "Loading…")):
-      React.createElement(React.Fragment, null,
-        tab==="home"&&React.createElement(HomeScreen, { session, profile, setProfile }),
-        tab==="wallet"&&React.createElement(WalletScreen, { session, profile, setProfile }),
-        tab==="orders"&&React.createElement(OrdersScreen, { session }),
-        tab==="profile"&&React.createElement(ProfileScreen, { profile, onSignOut:hs })
-      )
+      React.createElement(React.Fragment, null, tab==="home"&&React.createElement(HomeScreen, { session, profile, setProfile }), tab==="wallet"&&React.createElement(WalletScreen, { session, profile, setProfile }), tab==="orders"&&React.createElement(OrdersScreen, { session }), tab==="profile"&&React.createElement(ProfileScreen, { profile, onSignOut:hs }))
     ),
     React.createElement("div", { style: { background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",padding:"6px 0 18px" } },
       [{id:"home",label:"Home",icon:"🏠"},{id:"wallet",label:"Wallet",icon:"💳"},{id:"orders",label:"Orders",icon:"🕐"},{id:"profile",label:"Account",icon:"👤"}].map(t=>React.createElement("button", { key:t.id, onClick:()=>setTab(t.id), onMouseDown:t.id==="home"?()=>{lp.current=setTimeout(()=>setAo(true),1500)}:undefined, onMouseUp:t.id==="home"?()=>clearTimeout(lp.current):undefined, onTouchStart:t.id==="home"?()=>{lp.current=setTimeout(()=>setAo(true),1500)}:undefined, onTouchEnd:t.id==="home"?()=>clearTimeout(lp.current):undefined, style: { flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4 } },
